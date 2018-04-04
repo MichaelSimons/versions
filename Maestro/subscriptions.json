@@ -1,11 +1,5 @@
 {
   "actions": {
-    // A build definition capable of running any .ps1 script in the aspnet/aspnet-docker repo
-    "aspnet-docker-general": {
-      "vsoInstance": "devdiv.visualstudio.com",
-      "vsoProject": "DevDiv",
-      "buildDefinitionId": 8550
-    },
     // A build definition capable of running any .ps1 script in the aspnet/Universe repo
     "aspnet-dependency-update": {
       "vsoInstance": "devdiv.visualstudio.com",
@@ -23,12 +17,6 @@
       "vsoInstance": "devdiv.visualstudio.com",
       "vsoProject": "DevDiv",
       "buildDefinitionId": 8289
-    },
-    // A 'build' that mirrors changes from github into VSTS
-    "github-vsts-mirror-private": {
-      "vsoInstance": "devdiv.visualstudio.com",
-      "vsoProject": "DevDiv",
-      "buildDefinitionId": 8548
     },
     // A build definition capable of running any .ps1 script in the CoreFxLab repo. By default, the master branch.
     "corefxlab-general": {
@@ -95,6 +83,12 @@
       "vsoInstance": "devdiv.visualstudio.com",
       "vsoProject": "DevDiv",
       "buildDefinitionId": 7263
+    },
+    // A build definition capable of running any .ps1 script in the source-build repo
+    "source-build-general": {
+      "vsoInstance": "devdiv.visualstudio.com",
+      "vsoProject": "DevDiv",
+      "buildDefinitionId": 8760
     },
     // A build definition capable of running any .ps1 script in the Standard repo. By default, the master branch.
     "standard-general": {
@@ -198,12 +192,8 @@
       "actionArguments": {
         "vsoSourceBranch": "release/1.1.0",
         "vsoBuildParameters": {
-          "ScriptFileName": "run.cmd",
+          "ScriptFileName": "UpdateDependencies.ps1",
           "Arguments": [
-            "build",
-            "-Project='tests\\build.proj'",
-            "--",
-            "/t:UpdateDependenciesAndSubmitPullRequest",
             "/p:GitHubUser=dotnet-maestro-bot",
             "/p:GitHubEmail=dotnet-maestro-bot@microsoft.com",
             "/p:GitHubAuthToken=`$(`$Secrets['DotNetMaestroBotGitHubToken'])",
@@ -390,10 +380,8 @@
       "actionArguments": {
         "vsoSourceBranch": "release/1.1.0",
         "vsoBuildParameters": {
-          "ScriptFileName": "build-managed.cmd",
+          "ScriptFileName": "UpdateDependencies.ps1",
           "Arguments": [
-            "--",
-            "/t:UpdateDependenciesAndSubmitPullRequest",
             "/p:GitHubUser=dotnet-maestro-bot",
             "/p:GitHubEmail=dotnet-maestro-bot@microsoft.com",
             "/p:GitHubAuthToken=`$(`$Secrets['DotNetMaestroBotGitHubToken'])",
@@ -458,6 +446,32 @@
         }
       }
     },
+    // Update dependencies in CoreFX release/uwp6.1
+    {
+      "triggerPaths": [
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/corefx/release/uwp6.1/Latest.txt",
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/coreclr/release/uwp6.1/Latest.txt"
+      ],
+      "action": "corefx-general",
+      "delay": "00:10:00",
+      "actionArguments": {
+        "vsoSourceBranch": "release/uwp6.1",
+        "vsoBuildParameters": {
+          "ScriptFileName": "build-managed.cmd",
+          "Arguments": [
+            "--",
+            "/t:UpdateDependenciesAndSubmitPullRequest",
+            "/p:GitHubUser=dotnet-maestro-bot",
+            "/p:GitHubEmail=dotnet-maestro-bot@microsoft.com",
+            "/p:GitHubAuthToken=`$(`$Secrets['DotNetMaestroBotGitHubToken'])",
+            "/p:ProjectRepoOwner=dotnet",
+            "/p:ProjectRepoName=corefx",
+            "/p:ProjectRepoBranch=release/uwp6.1",
+            "/verbosity:Normal"
+          ]
+        }
+      }
+    },
     // Update dependencies in CoreFX release/2.1
     {
       "triggerPaths": [
@@ -488,32 +502,27 @@
     // Mirror github changes to vsts
     {
       "triggerPaths": [
+        "https://github.com/dotnet/arcade/blob/master/**/*",
         "https://github.com/dotnet/buildtools/blob/master/**/*",
         "https://github.com/dotnet/buildtools/blob/release/**/*",
+        "https://github.com/dotnet/cli/blob/master/**/*",
+        "https://github.com/dotnet/cli/blob/rel/**/*",
+        "https://github.com/dotnet/cli/blob/release/**/*",
         "https://github.com/dotnet/corefx/blob/master/**/*",
         "https://github.com/dotnet/corefx/blob/release/**/*",
         "https://github.com/dotnet/coreclr/blob/master/**/*",
         "https://github.com/dotnet/coreclr/blob/release/**/*",
         "https://github.com/dotnet/core-setup/blob/master/**/*",
         "https://github.com/dotnet/core-setup/blob/release/**/*",
+        "https://github.com/dotnet/machinelearning/blob/master/**/*",
         "https://github.com/dotnet/standard/blob/master/**/*",
-        "https://github.com/dotnet/standard/blob/release/**/*"
+        "https://github.com/dotnet/standard/blob/release/**/*",
+        "https://github.com/dotnet/symstore/blob/master/**/*",
+        "https://github.com/dotnet/uwp-setup/blob/arm64/**/*",
+        "https://github.com/dotnet/uwp-setup/blob/master/**/*",
+        "https://github.com/dotnet/uwp-setup/blob/rel/**/*"
       ],
       "action": "github-vsts-mirror",
-      "actionArguments": {
-        "vsoBuildParameters": {
-          "GithubRepo": "<trigger-repo>",
-          "BranchToMirror": "<trigger-branch>"
-        }
-      }
-    },
-    // Mirror private github changes to vsts
-    {
-      "triggerPaths": [
-        "https://github.com/dotnet/arcade/blob/master/**/*",
-        "https://github.com/dotnet/machinelearning/blob/master/**/*"
-      ],
-      "action": "github-vsts-mirror-private",
       "actionArguments": {
         "vsoBuildParameters": {
           "GithubRepo": "<trigger-repo>",
@@ -686,26 +695,28 @@
         "vsoSourceBranch": "nightly"
       }
     },
-    // Update dependencies in the aspnet/aspnet-docker repo's dev branch
+    // Update dependencies in the aspnetcore repo's release/2.1 branch
     {
       "triggerPaths": [
-        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/product/cli/release/2.1/packages+installers.semaphore"
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/product/cli/release/2.1/packages.semaphore"
       ],
-      "action": "aspnet-docker-general",
+      "action": "aspnet-dependency-update",
       "delay": "00:05:00",
       "actionArguments": {
+        "vsoSourceBranch": "release/2.1",
         "vsoBuildParameters": {
-          "ScriptFileName": "scripts\\Invoke-UpdateDependencies.ps1",
+          "ScriptFileName": "scripts\\UpdateDependencies.ps1",
           "Arguments": [
-            "-CleanupDocker",
-              "--github-user:dotnet-maestro-bot",
-              "--github-email:dotnet-maestro-bot@microsoft.com",
-              "--github-password:`$Secrets[`'BotAccount-dotnet-maestro-bot-PAT`']",
-              "--branch:dev",
-              "--build-info-url:https://raw.githubusercontent.com/dotnet/versions/master/build-info/dotnet/product/cli/release/2.1/build.xml"
+            "-BuildXml",
+            "https://raw.githubusercontent.com/dotnet/versions/master/build-info/dotnet/product/cli/release/2.1/build.xml",
+            "-ConfigVars '",
+              "--GithubUpstreamBranch release/2.1",
+              "--GithubUsername dotnet-maestro-bot",
+              "--GithubEmail dotnet-maestro-bot@microsoft.com",
+              "--GithubToken=`$(`$Secrets[`'BotAccount-dotnet-maestro-bot-PAT`'])",
+            "'"
           ]
-        },
-        "vsoSourceBranch": "dev"
+        }
       }
     },
     // Update dependencies in the aspnetcore repo's dev branch
@@ -716,16 +727,17 @@
       "action": "aspnet-dependency-update",
       "delay": "00:05:00",
       "actionArguments": {
-        "vsoSourceBranch": "master",
+        "vsoSourceBranch": "dev",
         "vsoBuildParameters": {
           "ScriptFileName": "scripts\\UpdateDependencies.ps1",
           "Arguments": [
             "-BuildXml",
             "https://raw.githubusercontent.com/dotnet/versions/master/build-info/dotnet/product/cli/master/build.xml",
             "-ConfigVars '",
+            "--GithubUpstreamBranch dev",
             "--GithubUsername dotnet-maestro-bot",
             "--GithubEmail dotnet-maestro-bot@microsoft.com",
-            "--GithubToken `$(`$Secrets[`'BotAccount-dotnet-maestro-bot-PAT`'])",
+            "--GithubToken=`$(`$Secrets[`'BotAccount-dotnet-maestro-bot-PAT`'])",
             "'"
           ]
         }
@@ -848,6 +860,59 @@
         }
       }
     },
+    // Update dependencies in cli release/2.1.3xx
+    {
+      "triggerPaths": [
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/product/cli/release/2.1/packages.semaphore",
+      ],
+      "action": "cli-dependencies",
+      "delay": "00:05:00",
+      "actionArguments": {
+        "vsoSourceBranch": "release/2.1.3xx",
+        "vsoBuildParameters": {
+          "GITHUB_PULL_REQUEST_NOTIFICATIONS": "dotnet/dotnet-cli",
+          "GITHUB_UPSTREAM_BRANCH": "release/2.1.3xx",
+          // Enable once this is done https://github.com/aspnet/Universe/issues/1013.  
+          // "ASPNET_VERSION_FRAGMENT": "<version fragment>",
+          "CLICOMMANDLINEPARSER_VERSION_FRAGMENT": "dotnet/CliCommandLineParser/release/2.1.3xx",
+          "CLIMIGRATE_VERSION_FRAGMENT": "dotnet/cli-migrate/release/2.1.3xx",
+          "CORESETUP_VERSION_FRAGMENT": "dotnet/core-setup/release/2.1",
+          "FSHARP_VERSION_FRAGMENT": "dotnet/fsharp/dev15.7",
+          "MSBUILD_VERSION_FRAGMENT": "dotnet/Microsoft/msbuild/vs15.7",
+          "NUGETCLIENT_VERSION_FRAGMENT": "dotnet/nuget.client/dev",
+          "ROSLYN_VERSION_FRAGMENT": "dotnet/roslyn/dev15.7",
+          "SDK_VERSION_FRAGMENT": "dotnet/sdk/release/2.1.3xx",
+          "TEMPLATING_VERSION_FRAGMENT": "dotnet/templating/release/2.1",
+          "WEBSDK_VERSION_FRAGMENT": "dotnet/websdk/release/2.1"
+        }
+      }
+    },
+    // Update dependencies in source-build dev/release/2.1
+    {
+      "triggerPaths": [
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/buildtools/release/2.1/Latest.txt",
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/product/cli/release/2.1/build.semaphore"
+      ],
+      "action": "source-build-general",
+      "delay": "00:10:00",
+      "actionArguments": {
+        "vsoSourceBranch": "dev/release/2.1",
+        "vsoBuildParameters": {
+          "ScriptFileName": "build.cmd",
+          "Arguments": [
+            "/t:UpdateToRemoteDependencies",
+            "/t:SubmitPullRequestIfChanged",
+            "/p:GitHubUser=dotnet-maestro-bot",
+            "/p:GitHubEmail=dotnet-maestro-bot@microsoft.com",
+            "/p:GitHubAuthToken=`$(`$Secrets['DotNetMaestroBotGitHubToken'])",
+            "/p:ProjectRepoOwner=dotnet",
+            "/p:ProjectRepoName=source-build",
+            "/p:ProjectRepoBranch=dev/release/2.1",
+            "/clp:v=Normal"
+          ]
+        }
+      }
+    },
     // Update dependencies in Standard master
     {
       "triggerPaths": [
@@ -886,13 +951,11 @@
       "actionArguments": {
         "vsoSourceBranch": "release/2.0.0",
         "vsoBuildParameters": {
-          "ScriptFileName": "build-managed.cmd",
+          "ScriptFileName": "UpdateDependencies.ps1",
           "Arguments": [
-            "--",
-            "/t:UpdateDependenciesAndSubmitPullRequest",
-            "/p:GitHubUser=dotnet-bot",
-            "/p:GitHubEmail=dotnet-bot@microsoft.com",
-            "/p:GitHubAuthToken=`$(`$Secrets['DotNetBotGitHubPassword'])",
+            "/p:GitHubUser=dotnet-maestro-bot",
+            "/p:GitHubEmail=dotnet-maestro-bot@microsoft.com",
+            "/p:GitHubAuthToken=`$(`$Secrets['DotNetMaestroBotGitHubToken'])",
             "/p:ProjectRepoOwner=dotnet",
             "/p:ProjectRepoName=wcf",
             "/p:ProjectRepoBranch=release/2.0.0",
@@ -1040,6 +1103,34 @@
         }
       }
     },
+    // Update dependencies in uwp-setup rel/6.1
+    {
+      "triggerPaths": [
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/buildtools/master/Latest.txt",
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/coreclr/release/uwp6.1/Latest.txt",
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/projectn-tfs-ilc/release/uwp6.1/Latest.txt",
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/standard/release/2.0.0/Latest.txt"
+      ],
+      "action": "uwp-setup-general",
+      "delay": "00:10:00",
+      "actionArguments": {
+        "vsoSourceBranch": "rel/6.1",
+        "vsoBuildParameters": {
+          "ScriptFileName": "build.cmd",
+          "Arguments": [
+            "--",
+            "/t:UpdateDependenciesAndSubmitPullRequest",
+            "/p:GitHubUser=dotnet-maestro-bot",
+            "/p:GitHubEmail=dotnet-maestro-bot@microsoft.com",
+            "/p:GitHubAuthToken=`$(`$Secrets['DotNetMaestroBotGitHubToken'])",
+            "/p:ProjectRepoOwner=dotnet",
+            "/p:ProjectRepoName=uwp-setup",
+            "/p:ProjectRepoBranch=rel/6.1",
+            "/verbosity:Normal"
+          ]
+        }
+      }
+    },
     // Merge mirrored branches
     {
       "triggerPaths": [
@@ -1076,6 +1167,21 @@
       "actionArguments": {
         "vsoBuildParameters": {
           "PB_FinalTargets": "/t:FinalSymbolPublish",
+          "PB_SymbolServer": "msdl",
+          "PB_TriggerPath": "<trigger-path>",
+          "PB_VersionsRepoRef": "<trigger-commit>"
+        }
+      }
+    },
+    {
+      "triggerPaths": [
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/product/cli/master/build.semaphore"
+      ],
+      "action": "DotNet-Orchestration-Final-Publish-Executor",
+      "actionArguments": {
+        "vsoBuildParameters": {
+          "PB_FinalTargets": "/t:FinalSymbolPublish",
+          "PB_SymbolServer": "symweb",
           "PB_TriggerPath": "<trigger-path>",
           "PB_VersionsRepoRef": "<trigger-commit>"
         }
@@ -1149,6 +1255,21 @@
       "actionArguments": {
         "vsoBuildParameters": {
           "PB_FinalTargets": "/t:FinalSymbolPublish",
+          "PB_SymbolServer": "msdl",
+          "PB_TriggerPath": "<trigger-path>",
+          "PB_VersionsRepoRef": "<trigger-commit>",
+        }
+      }
+    },
+    {
+      "triggerPaths": [
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/product/cli/release/2.1/build.semaphore"
+      ],
+      "action": "DotNet-Orchestration-Final-Publish-Executor",
+      "actionArguments": {
+        "vsoBuildParameters": {
+          "PB_FinalTargets": "/t:FinalSymbolPublish",
+          "PB_SymbolServer": "symweb",
           "PB_TriggerPath": "<trigger-path>",
           "PB_VersionsRepoRef": "<trigger-commit>",
         }
@@ -1175,6 +1296,21 @@
       "actionArguments": {
         "vsoBuildParameters": {
           "PB_FinalTargets": "/t:FinalSymbolPublish",
+          "PB_SymbolServer": "msdl",
+          "PB_TriggerPath": "<trigger-path>",
+          "PB_VersionsRepoRef": "<trigger-commit>",
+        }
+      }
+    },
+    {
+      "triggerPaths": [
+        "https://github.com/dotnet/versions/blob/master/build-info/dotnet/product/cli/release/2.1-preview1/build.semaphore"
+      ],
+      "action": "DotNet-Orchestration-Final-Publish-Executor",
+      "actionArguments": {
+        "vsoBuildParameters": {
+          "PB_FinalTargets": "/t:FinalSymbolPublish",
+          "PB_SymbolServer": "symweb",
           "PB_TriggerPath": "<trigger-path>",
           "PB_VersionsRepoRef": "<trigger-commit>",
         }
